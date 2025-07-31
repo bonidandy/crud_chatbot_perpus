@@ -32,8 +32,10 @@ def get_db_connection():
     try:
         # Filter None values dari config
         config = {k: v for k, v in DB_CONFIG.items() if v is not None}
+        print(f"Attempting to connect with config: {config}")  # Debug log
         connection = mysql.connector.connect(**config)
         if connection.is_connected():
+            print("Database connection successful!")
             return connection
         else:
             print("Failed to establish database connection")
@@ -288,4 +290,13 @@ def update_book():
 
 # Inisialisasi aplikasi
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Test koneksi database saat startup
+    print("Testing database connection...")
+    test_conn = get_db_connection()
+    if test_conn:
+        print("Database connection test: SUCCESS")
+        test_conn.close()
+    else:
+        print("Database connection test: FAILED")
+    
+    app.run(debug=True, host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
