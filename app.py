@@ -5,18 +5,22 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from dotenv import load_dotenv
+import pymysql
 
-# Memuat variabel lingkungan dari .env
+# Memuat variabel lingkungan dari .env (untuk pengembangan lokal)
 load_dotenv()
+
+# Menggunakan PyMySQL sebagai MySQLdb
+pymysql.install_as_MySQLdb()
 
 app = Flask(__name__)
 app.secret_key = 'many random bytes'
 
 # Konfigurasi database menggunakan variabel lingkungan dari Railway
-app.config['MYSQL_HOST'] = os.getenv('DB_HOST')
-app.config['MYSQL_USER'] = os.getenv('DB_USER')
-app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD') 
-app.config['MYSQL_DB'] = os.getenv('DB_NAME')
+app.config['MYSQL_HOST'] = os.getenv('DB_HOST')  # Host yang diberikan oleh Railway
+app.config['MYSQL_USER'] = os.getenv('DB_USER')  # Username untuk MySQL
+app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')  # Password MySQL
+app.config['MYSQL_DB'] = os.getenv('DB_NAME')  # Nama database yang diberikan oleh Railway
 
 mysql = MySQL(app)
 

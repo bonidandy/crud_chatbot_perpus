@@ -1,6 +1,5 @@
 PyMySQL
 Flask
-flask-mysqldb
 werkzeug
 python-dotenv
 gunicorn
