@@ -1,28 +1,46 @@
 import os
 from flask import Flask, render_template, request, url_for, flash, session, redirect
-from flask_mysqldb import MySQL
+import mysql.connector
+from mysql.connector import Error
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from dotenv import load_dotenv
-import pymysql
 
 # Memuat variabel lingkungan dari .env (untuk pengembangan lokal)
 load_dotenv()
-
-# Menggunakan PyMySQL sebagai MySQLdb
-pymysql.install_as_MySQLdb()
 
 app = Flask(__name__)
 app.secret_key = 'many random bytes'
 
 # Konfigurasi database menggunakan variabel lingkungan dari Railway
-app.config['MYSQL_HOST'] = os.getenv('DB_HOST')  # Host yang diberikan oleh Railway
-app.config['MYSQL_USER'] = os.getenv('DB_USER')  # Username untuk MySQL
-app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')  # Password MySQL
-app.config['MYSQL_DB'] = os.getenv('DB_NAME')  # Nama database yang diberikan oleh Railway
+DB_CONFIG = {
+    'host': os.getenv('DB_HOST', 'mysql.railway.internal'),
+    'port': int(os.getenv('DB_PORT', 3306)),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD'),
+    'database': os.getenv('DB_NAME', 'railway'),
+    'autocommit': True,
+    'charset': 'utf8mb4',
+    'collation': 'utf8mb4_unicode_ci',
+    'connect_timeout': 60,
+    'buffered': True
+}
 
-mysql = MySQL(app)
+# Fungsi untuk mendapatkan koneksi database
+def get_db_connection():
+    try:
+        # Filter None values dari config
+        config = {k: v for k, v in DB_CONFIG.items() if v is not None}
+        connection = mysql.connector.connect(**config)
+        if connection.is_connected():
+            return connection
+        else:
+            print("Failed to establish database connection")
+            return None
+    except Error as e:
+        print(f"Error connecting to MySQL: {e}")
+        return None
 
 # Decorator untuk memastikan pengguna login
 def login_required(f):
@@ -39,18 +57,33 @@ def login_required(f):
 def login():
     if 'admin_id' in session:
         return redirect(url_for('dashboard'))
+    
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM admin WHERE email=%s", (email,))
-        admin = cur.fetchone()
-        if admin and check_password_hash(admin[2], password):  # Memeriksa hash password
-            session['admin_id'] = admin[0]
-            flash('Login berhasil!')
-            return redirect(url_for('dashboard'))
+        
+        connection = get_db_connection()
+        if connection:
+            try:
+                cursor = connection.cursor()
+                cursor.execute("SELECT * FROM admin WHERE email=%s", (email,))
+                admin = cursor.fetchone()
+                
+                if admin and check_password_hash(admin[2], password):  # Memeriksa hash password
+                    session['admin_id'] = admin[0]
+                    flash('Login berhasil!')
+                    return redirect(url_for('dashboard'))
+                else:
+                    flash('Email atau password salah!')
+                    
+            except Error as e:
+                flash(f'Database error: {e}')
+            finally:
+                cursor.close()
+                connection.close()
         else:
-            flash('Email atau password salah!')
+            flash('Koneksi database gagal!')
+            
     return render_template('login.html')
 
 # Route Logout
@@ -64,10 +97,22 @@ def logout():
 @app.route('/')
 @login_required
 def dashboard():
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM intents")
-    intents = cur.fetchall()
-    cur.close()
+    connection = get_db_connection()
+    intents = []
+    
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM intents")
+            intents = cursor.fetchall()
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return render_template('index.html', intents=intents)
 
 # Route untuk Insert data intent
@@ -77,20 +122,42 @@ def insert():
     tag = request.form['tag']
     patterns = request.form['patterns']
     responses = request.form['responses']
-    cur = mysql.connection.cursor()
-    cur.execute("INSERT INTO intents (tag, patterns, responses) VALUES (%s, %s, %s)", (tag, patterns, responses))
-    mysql.connection.commit()
-    flash("Data berhasil ditambahkan!")
+    
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("INSERT INTO intents (tag, patterns, responses) VALUES (%s, %s, %s)", 
+                         (tag, patterns, responses))
+            flash("Data berhasil ditambahkan!")
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return redirect(url_for('dashboard'))
 
 # Route untuk Delete data intent
 @app.route('/delete/<string:id_data>', methods=['GET'])
 @login_required
 def delete(id_data):
-    cur = mysql.connection.cursor()
-    cur.execute("DELETE FROM intents WHERE id=%s", (id_data,))
-    mysql.connection.commit()
-    flash("Data berhasil dihapus!")
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM intents WHERE id=%s", (id_data,))
+            flash("Data berhasil dihapus!")
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return redirect(url_for('dashboard'))
 
 # Route untuk Update data intent
@@ -101,23 +168,46 @@ def update():
     tag = request.form['tag']
     patterns = request.form['patterns']
     responses = request.form['responses']
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        UPDATE intents SET tag=%s, patterns=%s, responses=%s
-        WHERE id=%s
-    """, (tag, patterns, responses, id_data))
-    mysql.connection.commit()
-    flash("Data berhasil diperbarui!")
+    
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("""
+                UPDATE intents SET tag=%s, patterns=%s, responses=%s
+                WHERE id=%s
+            """, (tag, patterns, responses, id_data))
+            flash("Data berhasil diperbarui!")
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return redirect(url_for('dashboard'))
 
 # Route untuk CRUD Buku
 @app.route('/books')
 @login_required
 def books():
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM books")
-    books = cur.fetchall()
-    cur.close()
+    connection = get_db_connection()
+    books = []
+    
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM books")
+            books = cursor.fetchall()
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return render_template('books.html', books=books)
 
 # Route untuk menambah buku
@@ -129,21 +219,42 @@ def add_book():
     location = request.form['location']
     availability = request.form['availability']
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    cur = mysql.connection.cursor()
-    cur.execute("INSERT INTO books (title, subject, location, availability, timestamp) VALUES (%s, %s, %s, %s, %s)",
-                (title, subject, location, availability, timestamp))
-    mysql.connection.commit()
-    flash("Buku berhasil ditambahkan!")
+    
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("INSERT INTO books (title, subject, location, availability, timestamp) VALUES (%s, %s, %s, %s, %s)",
+                         (title, subject, location, availability, timestamp))
+            flash("Buku berhasil ditambahkan!")
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return redirect(url_for('books'))
 
 # Route untuk menghapus buku
 @app.route('/books/delete/<int:id>', methods=['GET'])
 @login_required
 def delete_book(id):
-    cur = mysql.connection.cursor()
-    cur.execute("DELETE FROM books WHERE id=%s", (id,))
-    mysql.connection.commit()
-    flash("Buku berhasil dihapus!")
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM books WHERE id=%s", (id,))
+            flash("Buku berhasil dihapus!")
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return redirect(url_for('books'))
 
 # Route untuk memperbarui buku
@@ -155,13 +266,24 @@ def update_book():
     subject = request.form['subject']
     location = request.form['location']
     availability = request.form['availability']
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        UPDATE books SET title=%s, subject=%s, location=%s, availability=%s
-        WHERE id=%s
-    """, (title, subject, location, availability, id))
-    mysql.connection.commit()
-    flash("Buku berhasil diperbarui!")
+    
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("""
+                UPDATE books SET title=%s, subject=%s, location=%s, availability=%s
+                WHERE id=%s
+            """, (title, subject, location, availability, id))
+            flash("Buku berhasil diperbarui!")
+        except Error as e:
+            flash(f'Database error: {e}')
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        flash('Koneksi database gagal!')
+        
     return redirect(url_for('books'))
 
 # Inisialisasi aplikasi
