@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Buku</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .table-row.hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="mb-0">Manajemen Buku</h2>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">← Kembali ke Dashboard</a>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Page Size Selector -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="form-inline">
+                <label for="pageSize" class="mr-2">Tampilkan:</label>
+                <select id="pageSize" class="form-control form-control-sm" onchange="changePageSize()">
+                    <option value="5">5 per halaman</option>
+                    <option value="10" selected>10 per halaman</option>
+                    <option value="20">20 per halaman</option>
+                    <option value="50">50 per halaman</option>
+                </select>
+            </div>
+            <div id="paginationInfo" class="text-muted small">
+                Menampilkan ...
+            </div>
+        </div>
+
+        <form action="{{ url_for('add_book') }}" method="POST" class="mb-4">
+            <div class="form-row">
+                <div class="col-md-3">
+                    <input type="text" name="title" class="form-control" placeholder="Judul" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="subject" class="form-control" placeholder="Topik" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="location" class="form-control" placeholder="Lokasi Rak" required>
+                </div>
+                <div class="col-md-2">
+                    <select name="availability" class="form-control">
+                        <option value="tersedia">Tersedia</option>
+                        <option value="dipinjam">Dipinjam</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-block">Tambah</button>
+                </div>
+            </div>
+        </form>
+
+        <table class="table table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Judul</th>
+                    <th>Topik</th>
+                    <th>Rak</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="booksTableBody">
+                {% for book in books %}
+                <tr class="table-row">
+                    <form action="{{ url_for('update_book') }}" method="POST">
+                        <td>{{ book[0] }}<input type="hidden" name="id" value="{{ book[0] }}"></td>
+                        <td><input type="text" name="title" class="form-control" value="{{ book[1] }}" required></td>
+                        <td><input type="text" name="subject" class="form-control" value="{{ book[2] }}" required></td>
+                        <td><input type="text" name="location" class="form-control" value="{{ book[3] }}" required></td>
+                        <td>
+                            <select name="availability" class="form-control">
+                                <option value="tersedia" {% if book[4]=='tersedia' %}selected{% endif %}>Tersedia
+                                </option>
+                                <option value="dipinjam" {% if book[4]=='dipinjam' %}selected{% endif %}>Dipinjam
+                                </option>
+                            </select>
+                        </td>
+                        <td>{{ book[5] }}</td>
+                        <td>
+                            <button type="submit" class="btn btn-sm btn-warning mb-1">Simpan</button>
+                            <a href="{{ url_for('delete_book', id=book[0]) }}" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Yakin ingin menghapus buku ini?')">Hapus</a>
+                        </td>
+                    </form>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination Buttons -->
+        <nav>
+            <ul class="pagination justify-content-center" id="pagination"></ul>
+        </nav>
+    </div>
+
+    <!-- JavaScript Pagination -->
+    <script>
+        let currentPage = 1;
+        let itemsPerPage = parseInt(document.getElementById('pageSize').value);
+        const rows = document.querySelectorAll('.table-row');
+
+        function showPage(page) {
+            const totalItems = rows.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+
+            currentPage = page;
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+
+            rows.forEach((row, index) => {
+                row.classList.toggle('hidden', !(index >= start && index < end));
+            });
+
+            document.getElementById('paginationInfo').innerText =
+                `Menampilkan ${start + 1}-${Math.min(end, totalItems)} dari ${totalItems} data`;
+
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            const createItem = (label, page, disabled = false, active = false) => {
+                const li = document.createElement('li');
+                li.className = `page-item ${disabled ? 'disabled' : ''} ${active ? 'active' : ''}`;
+                const a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = '#';
+                a.innerText = label;
+                a.onclick = (e) => {
+                    e.preventDefault();
+                    if (!disabled) showPage(page);
+                };
+                li.appendChild(a);
+                pagination.appendChild(li);
+            };
+
+            createItem('«', currentPage - 1, currentPage === 1);
+            for (let i = 1; i <= totalPages; i++) {
+                createItem(i, i, false, currentPage === i);
+            }
+            createItem('»', currentPage + 1, currentPage === totalPages);
+        }
+
+        function changePageSize() {
+            itemsPerPage = parseInt(document.getElementById('pageSize').value);
+            showPage(1);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showPage(1);
+        });
+    </script>
+</body>
+
+</html>

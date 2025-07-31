@@ -1,0 +1,7 @@
+flask-mysqldb
+Flask
+flask-mysqldb
+werkzeug
+python-dotenv
+gunicorn
+uwsgi==2.0.30

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Login Admin</title>
+    <style>
+        body {
+            background: #f5f5f5;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-box {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .login-box input[type="email"],
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .login-box button {
+            background-color: #156ECE;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .login-box button:hover {
+            background-color: #0e58b0;
+        }
+
+        .flash-messages {
+            color: red;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-box">
+        <h2>Login Admin</h2>
+        <form method="POST">
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+
+        <!-- Flash Message -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for msg in messages %}
+            <div>{{ msg }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+
+</body>
+
+</html>

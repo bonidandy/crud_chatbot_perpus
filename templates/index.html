@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard QnA - Intents Management</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <style>
+    /* Base styles */
+    body {
+      font-size: 14px;
+    }
+
+    /* Header styles */
+    .dashboard-header {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      color: white;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .dashboard-header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+
+    /* Table improvements */
+    .table-responsive {
+      overflow-x: auto;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .table {
+      margin-bottom: 0;
+      min-width: 800px;
+      /* Ensures table doesn't get too cramped */
+    }
+
+    .table th {
+      background-color: #f8f9fa;
+      border-top: none;
+      font-weight: 600;
+      color: #495057;
+      white-space: nowrap;
+    }
+
+    .table td {
+      vertical-align: middle;
+    }
+
+    /* Content formatting */
+    .content-cell {
+      max-width: 200px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 0.85rem;
+      font-family: 'Courier New', monospace;
+      background-color: #f8f9fa;
+      padding: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .content-cell.expanded {
+      max-width: none;
+      max-height: none;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      min-width: 140px;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    /* Cards for mobile view */
+    .mobile-card {
+      display: none;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .mobile-card-header {
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .mobile-card-body {
+      padding: 1rem;
+    }
+
+    .mobile-card-footer {
+      background-color: #f8f9fa;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid #dee2e6;
+    }
+
+    .mobile-field {
+      margin-bottom: 0.75rem;
+    }
+
+    .mobile-field-label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.25rem;
+    }
+
+    .mobile-field-value {
+      background-color: #f8f9fa;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    /* Pagination styles */
+    .pagination-container {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .pagination-info {
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+
+    .pagination {
+      margin-bottom: 0;
+    }
+
+    .page-link {
+      padding: 0.5rem 0.75rem;
+      margin-left: -1px;
+      line-height: 1.25;
+      color: #dc3545;
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+    }
+
+    .page-link:hover {
+      color: #c82333;
+      background-color: #e9ecef;
+      border-color: #dee2e6;
+    }
+
+    .page-item.active .page-link {
+      color: #fff;
+      background-color: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .page-item.disabled .page-link {
+      color: #6c757d;
+      background-color: #fff;
+      border-color: #dee2e6;
+    }
+
+    /* Page size selector */
+    .page-size-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .page-size-selector select {
+      padding: 0.25rem 0.5rem;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+
+    /* Responsive breakpoints */
+    @media (max-width: 991px) {
+      .dashboard-header h1 {
+        font-size: 1.5rem;
+      }
+
+      .table {
+        min-width: 700px;
+      }
+
+      .content-cell {
+        max-width: 150px;
+      }
+    }
+
+    @media (max-width: 767px) {
+
+      /* Hide table on mobile */
+      .table-responsive {
+        display: none;
+      }
+
+      /* Show mobile cards */
+      .mobile-card {
+        display: block;
+      }
+
+      .dashboard-header h1 {
+        font-size: 1.3rem;
+        text-align: center;
+      }
+
+      .section-header {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 1rem;
+      }
+
+      .section-header h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0;
+      }
+
+      .btn-primary {
+        width: 100%;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .action-buttons .btn {
+        width: 100%;
+      }
+
+      .pagination-container {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .pagination-info {
+        text-align: center;
+      }
+
+      .page-size-selector {
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 575px) {
+      .container-fluid {
+        padding: 0.5rem;
+      }
+
+      .dashboard-header {
+        margin-bottom: 1rem;
+      }
+
+      .dashboard-header h1 {
+        font-size: 1.2rem;
+      }
+
+      .mobile-card-header,
+      .mobile-card-body,
+      .mobile-card-footer {
+        padding: 0.75rem;
+      }
+
+      .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .page-link {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.875rem;
+      }
+    }
+
+    /* Expand/collapse functionality */
+    .expand-btn {
+      background: none;
+      border: none;
+      color: #007bff;
+      font-size: 0.75rem;
+      padding: 0;
+      margin-top: 0.25rem;
+      cursor: pointer;
+    }
+
+    .expand-btn:hover {
+      text-decoration: underline;
+    }
+
+    /* Modal improvements */
+    @media (max-width: 575px) {
+      .modal-dialog {
+        margin: 0.5rem;
+      }
+
+      .modal-content {
+        border-radius: 8px;
+      }
+    }
+
+    /* Success message */
+    .alert-success {
+      border-radius: 8px;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Loading states */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* Hidden rows for pagination */
+    .table-row.hidden {
+      display: none !important;
+    }
+
+    .mobile-card.hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container-fluid py-3">
+    <!-- Header -->
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1>QnA Admin Dashboard</h1>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('books') }}" class="btn btn-light btn-sm mr-2">Manajemen Buku</a>
+          <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="row justify-content-center">
+      <div class="col-12">
+        <!-- Section Header -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 section-header">
+          <h2 class="mb-2">Data Intents</h2>
+          <button class="btn btn-primary" data-toggle="modal" data-target="#myModal">
+            <i class="fas fa-plus"></i> Tambah QnA
+          </button>
+        </div>
+
+        <!-- Success Message -->
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <strong>Berhasil!</strong> {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Page Size Selector -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="page-size-selector">
+            <label for="pageSize">Tampilkan:</label>
+            <select id="pageSize" onchange="changePageSize()">
+              <option value="5">5 per halaman</option>
+              <option value="10" selected>10 per halaman</option>
+              <option value="20">20 per halaman</option>
+              <option value="50">50 per halaman</option>
+            </select>
+          </div>
+          <div class="pagination-info">
+            <span id="currentInfo">Menampilkan 1-10 dari <span id="totalRecords"></span> data</span>
+          </div>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th style="width: 60px;">ID</th>
+                <th style="width: 120px;">Tag</th>
+                <th style="width: 250px;">Patterns</th>
+                <th style="width: 250px;">Responses</th>
+                <th style="width: 140px;">Timestamp</th>
+                <th style="width: 140px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Data dari Flask -->
+              {% for row in intents %}
+              <tr class="table-row" data-index="{{ loop.index0 }}">
+                <td>{{ row[0] }}</td>
+                <td><span class="badge badge-primary">{{ row[1] }}</span></td>
+                <td>
+                  <div class="content-cell" onclick="toggleExpand(this)">
+                    {{ row[2] }}
+                    <button class="expand-btn" onclick="event.stopPropagation(); toggleExpand(this.parentElement)">
+                      Lihat selengkapnya
+                    </button>
+                  </div>
+                </td>
+                <td>
+                  <div class="content-cell" onclick="toggleExpand(this)">
+                    {{ row[3] }}
+                    <button class="expand-btn" onclick="event.stopPropagation(); toggleExpand(this.parentElement)">
+                      Lihat selengkapnya
+                    </button>
+                  </div>
+                </td>
+                <td><small>{{ row[4] }}</small></td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#modaledit{{ row[0] }}">
+                      Edit
+                    </button>
+                    <a href="/delete/{{ row[0] }}" onclick="return confirm('Yakin ingin menghapus data ini?')"
+                      class="btn btn-danger btn-sm">
+                      Delete
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-cards">
+          {% for row in intents %}
+          <div class="mobile-card" data-index="{{ loop.index0 }}">
+            <div class="mobile-card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">ID: {{ row[0] }}</h5>
+                <span class="badge badge-primary">{{ row[1] }}</span>
+              </div>
+            </div>
+            <div class="mobile-card-body">
+              <div class="mobile-field">
+                <div class="mobile-field-label">Patterns:</div>
+                <div class="mobile-field-value">{{ row[2] }}</div>
+              </div>
+              <div class="mobile-field">
+                <div class="mobile-field-label">Responses:</div>
+                <div class="mobile-field-value">{{ row[3] }}</div>
+              </div>
+              <div class="mobile-field">
+                <div class="mobile-field-label">Timestamp:</div>
+                <div class="mobile-field-value">{{ row[4] }}</div>
+              </div>
+            </div>
+            <div class="mobile-card-footer">
+              <div class="action-buttons">
+                <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#modaledit{{ row[0] }}">
+                  Edit
+                </button>
+                <a href="/delete/{{ row[0] }}" onclick="return confirm('Yakin ingin menghapus data ini?')"
+                  class="btn btn-danger btn-sm">
+                  Delete
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            <span id="mobileCurrentInfo">Menampilkan 1-10 dari <span id="mobileTotalRecords"></span> data</span>
+          </div>
+          <nav aria-label="Page navigation">
+            <ul class="pagination" id="pagination">
+              <li class="page-item" id="prevPage">
+                <a class="page-link" href="#" onclick="changePage(currentPage - 1)">Previous</a>
+              </li>
+              <!-- Page numbers will be generated by JavaScript -->
+              <li class="page-item" id="nextPage">
+                <a class="page-link" href="#" onclick="changePage(currentPage + 1)">Next</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah QnA -->
+  <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="myModalLabel">Tambah QnA</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form action="{{ url_for('insert') }}" method="POST" id="addForm">
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="tag">Tag</label>
+              <input type="text" class="form-control" id="tag" name="tag" placeholder="Contoh: greeting, goodbye"
+                required>
+            </div>
+            <div class="form-group">
+              <label for="patterns">Patterns (dalam format JSON)</label>
+              <textarea class="form-control" id="patterns" name="patterns" rows="4"
+                placeholder='Contoh: ["halo", "hai", "selamat pagi"]' required></textarea>
+              <small class="form-text text-muted">Masukkan array JSON berisi berbagai cara pengguna bisa
+                bertanya</small>
+            </div>
+            <div class="form-group">
+              <label for="responses">Responses (dalam format JSON)</label>
+              <textarea class="form-control" id="responses" name="responses" rows="4"
+                placeholder='Contoh: ["Halo juga!", "Hai!", "Selamat pagi!"]' required></textarea>
+              <small class="form-text text-muted">Masukkan array JSON berisi berbagai respon yang bisa diberikan</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary">Tambah QnA</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Edit QnA -->
+  {% for row in intents %}
+  <div class="modal fade" id="modaledit{{ row[0] }}" tabindex="-1" role="dialog"
+    aria-labelledby="modalEditLabel{{ row[0] }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditLabel{{ row[0] }}">Edit QnA (ID: {{ row[0] }})</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form action="{{ url_for('update') }}" method="POST">
+          <div class="modal-body">
+            <input type="hidden" name="id" value="{{ row[0] }}">
+            <div class="form-group">
+              <label for="tag">Tag</label>
+              <input type="text" class="form-control" name="tag" value="{{ row[1] }}" required>
+            </div>
+            <div class="form-group">
+              <label for="patterns">Patterns (dalam format JSON)</label>
+              <textarea class="form-control" name="patterns" rows="4" required>{{ row[2] }}</textarea>
+            </div>
+            <div class="form-group">
+              <label for="responses">Responses (dalam format JSON)</label>
+              <textarea class="form-control" name="responses" rows="4" required>{{ row[3] }}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-success">Simpan Perubahan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+  <script>
+    // Pagination variables
+    var currentPage = 1;
+    var itemsPerPage = 10;
+    var totalItems = document.querySelectorAll('.table-row').length;
+    var totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    // Initialize pagination on page load
+    document.addEventListener('DOMContentLoaded', function () {
+      updatePagination();
+      showPage(1);
+    });
+
+    // Toggle expand/collapse for content cells
+    function toggleExpand(element) {
+      element.classList.toggle('expanded');
+      const btn = element.querySelector('.expand-btn');
+      if (element.classList.contains('expanded')) {
+        btn.textContent = 'Tutup';
+      } else {
+        btn.textContent = 'Lihat selengkapnya';
+      }
+    }
+
+    // Change page size
+    function changePageSize() {
+      var select = document.getElementById('pageSize');
+      itemsPerPage = parseInt(select.value);
+      totalPages = Math.ceil(totalItems / itemsPerPage);
+      currentPage = 1;
+      updatePagination();
+      showPage(1);
+    }
+
+    // Show specific page
+    function showPage(pageNumber) {
+      if (pageNumber < 1 || pageNumber > totalPages) return;
+
+      currentPage = pageNumber;
+      var startIndex = (pageNumber - 1) * itemsPerPage;
+      var endIndex = startIndex + itemsPerPage;
+
+      // Hide all rows first
+      var tableRows = document.querySelectorAll('.table-row');
+      var mobileCards = document.querySelectorAll('.mobile-card');
+
+      tableRows.forEach(function (row, index) {
+        if (index >= startIndex && index < endIndex) {
+          row.classList.remove('hidden');
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+
+      mobileCards.forEach(function (card, index) {
+        if (index >= startIndex && index < endIndex) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      // Update pagination buttons
+      updatePaginationButtons();
+
+      // Update info text
+      var actualEndIndex = Math.min(endIndex, totalItems);
+      var infoText = 'Menampilkan ' + (startIndex + 1) + '-' + actualEndIndex + ' dari ' + totalItems + ' data';
+      document.getElementById('currentInfo').textContent = infoText;
+      document.getElementById('mobileCurrentInfo').textContent = infoText;
+    }
+
+    // Change page
+    function changePage(pageNumber) {
+      if (pageNumber >= 1 && pageNumber <= totalPages) {
+        showPage(pageNumber);
+      }
+    }
+
+    // Update pagination buttons
+    function updatePaginationButtons() {
+      var prevBtn = document.getElementById('prevPage');
+      var nextBtn = document.getElementById('nextPage');
+
+      // Update previous button
+      if (currentPage <= 1) {
+        prevBtn.classList.add('disabled');
+      } else {
+        prevBtn.classList.remove('disabled');
+      }
+
+      // Update next button
+      if (currentPage >= totalPages) {
+        nextBtn.classList.add('disabled');
+      } else {
+        nextBtn.classList.remove('disabled');
+      }
+
+      // Update active page
+      var pageNumbers = document.querySelectorAll('.page-number');
+      pageNumbers.forEach(function (btn) {
+        btn.classList.remove('active');
+      });
+
+      var currentBtn = document.getElementById('page-' + currentPage);
+      if (currentBtn) {
+        currentBtn.classList.add('active');
+      }
+    }
+
+    // Update pagination
+    function updatePagination() {
+      var pagination = document.getElementById('pagination');
+      var prevBtn = document.getElementById('prevPage');
+      var nextBtn = document.getElementById('nextPage');
+
+      // Clear existing page numbers
+      var pageNumbers = pagination.querySelectorAll('.page-number');
+      pageNumbers.forEach(function (btn) {
+        btn.remove();
+      });
+
+      // Add page numbers
+      var maxVisiblePages = 5;
+      var startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      var endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+      if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+
+      for (var i = startPage; i <= endPage; i++) {
+        var pageItem = document.createElement('li');
+        pageItem.className = 'page-item page-number';
+        pageItem.id = 'page-' + i;
+        if (i === currentPage) {
+          pageItem.classList.add('active');
+        }
+
+        var pageLink = document.createElement('a');
+        pageLink.className = 'page-link';
+        pageLink.href = '#';
+        pageLink.textContent = i;
+        pageLink.onclick = function (pageNum) {
+          return function (e) {
+            e.preventDefault();
+            changePage(pageNum);
+          };
+        }(i);
+
+        pageItem.appendChild(pageLink);
+        pagination.insertBefore(pageItem, nextBtn);
+      }
+
+      // Add ellipsis if needed
+      if (startPage > 1) {
+        var ellipsis = document.createElement('li');
+        ellipsis.className = 'page-item page-number disabled';
+        ellipsis.innerHTML = '<span class="page-link">...</span>';
+        pagination.insertBefore(ellipsis, document.getElementById('page-' + startPage));
+
+        if (startPage > 2) {
+          var firstPage = document.createElement('li');
+          firstPage.className = 'page-item page-number';
+          firstPage.innerHTML = '<a class="page-link" href="#" onclick="changePage(1)">1</a>';
+          pagination.insertBefore(firstPage, ellipsis);
+        }
+      }
+
+      if (endPage < totalPages) {
+        var ellipsis = document.createElement('li');
+        ellipsis.className = 'page-item page-number disabled';
+        ellipsis.innerHTML = '<span class="page-link">...</span>';
+        pagination.insertBefore(ellipsis, nextBtn);
+
+        if (endPage < totalPages - 1) {
+          var lastPage = document.createElement('li');
+          lastPage.className = 'page-item page-number';
+          lastPage.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + totalPages + ')">' + totalPages + '</a>';
+          pagination.insertBefore(lastPage, nextBtn);
+        }
+      }
+    }
+
+    // Add JSON validation to textareas
+    document.querySelectorAll('textarea[name="patterns"], textarea[name="responses"]').forEach(textarea => {
+      textarea.addEventListener('blur', function () {
+        validateJSON(this);
+      });
+    });
+
+    // Validate JSON input
+    function validateJSON(textarea) {
+      try {
+        JSON.parse(textarea.value);
+        textarea.classList.remove('is-invalid');
+        textarea.setCustomValidity('');
+        return true;
+      } catch (e) {
+        textarea.classList.add('is-invalid');
+        textarea.setCustomValidity('Format JSON tidak valid');
+        return false;
+      }
+    }
+
+    // Form validation before submit
+    document.getElementById('addForm').addEventListener('submit', function (e) {
+      const patterns = document.getElementById('patterns');
+      const responses = document.getElementById('responses');
+
+      if (!validateJSON(patterns) || !validateJSON(responses)) {
+        e.preventDefault();
+        alert('Harap periksa format JSON pada field Patterns dan Responses');
+      }
+    });
+
+    // Add validation styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+      }
+      .is-invalid:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+
+</html>
