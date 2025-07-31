@@ -1,4 +1,4 @@
-flask-mysqldb
+PyMySQL
 Flask
 flask-mysqldb
 werkzeug
