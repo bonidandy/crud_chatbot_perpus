@@ -54,7 +54,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Route Login
+# Route Login dengan debug dan support untuk plain text password
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'admin_id' in session:
@@ -71,14 +71,41 @@ def login():
                 cursor.execute("SELECT * FROM admin WHERE email=%s", (email,))
                 admin = cursor.fetchone()
                 
-                if admin and check_password_hash(admin[2], password):  # Memeriksa hash password
-                    session['admin_id'] = admin[0]
-                    flash('Login berhasil!')
-                    return redirect(url_for('dashboard'))
+                print(f"Login attempt - Email: {email}")  # Debug
+                print(f"Admin found: {admin}")  # Debug
+                
+                if admin:
+                    # Cek apakah password di database sudah di-hash atau plain text
+                    stored_password = admin[2]  # Asumsi password di kolom ke-3
+                    print(f"Stored password: {stored_password}")  # Debug
+                    print(f"Input password: {password}")  # Debug
+                    
+                    # Coba cek hash dulu, jika gagal coba plain text
+                    password_valid = False
+                    if stored_password.startswith('pbkdf2:') or stored_password.startswith('scrypt:') or stored_password.startswith('$'):
+                        # Password sudah di-hash
+                        try:
+                            password_valid = check_password_hash(stored_password, password)
+                            print(f"Hash check result: {password_valid}")  # Debug
+                        except Exception as e:
+                            print(f"Hash check error: {e}")  # Debug
+                            password_valid = False
+                    else:
+                        # Password masih plain text
+                        password_valid = (stored_password == password)
+                        print(f"Plain text check result: {password_valid}")  # Debug
+                    
+                    if password_valid:
+                        session['admin_id'] = admin[0]
+                        flash('Login berhasil!')
+                        return redirect(url_for('dashboard'))
+                    else:
+                        flash('Email atau password salah!')
                 else:
-                    flash('Email atau password salah!')
+                    flash('Email tidak ditemukan!')
                     
             except Error as e:
+                print(f"Database error during login: {e}")  # Debug
                 flash(f'Database error: {e}')
             finally:
                 cursor.close()
@@ -87,6 +114,87 @@ def login():
             flash('Koneksi database gagal!')
             
     return render_template('login.html')
+
+# Route untuk update password admin yang sudah ada menjadi hash
+@app.route('/hash-admin-password')
+def hash_admin_password():
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            # Hash password yang sudah ada
+            new_hashed_password = generate_password_hash('admin1234')
+            cursor.execute("UPDATE admin SET password = %s WHERE email = %s", 
+                         (new_hashed_password, 'admin@perpus.com'))
+            cursor.close()
+            connection.close()
+            return f"Password admin berhasil di-hash!<br>New hash: {new_hashed_password}<br><a href='/login'>Login sekarang</a>"
+        except Error as e:
+            return f'Database error: {e}'
+    else:
+        return 'Koneksi database gagal!'
+
+# Route untuk membuat admin baru
+@app.route('/create-admin', methods=['GET', 'POST'])
+def create_admin():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        hashed_password = generate_password_hash(password)
+        
+        connection = get_db_connection()
+        if connection:
+            try:
+                cursor = connection.cursor()
+                cursor.execute("INSERT INTO admin (email, password) VALUES (%s, %s)", 
+                             (email, hashed_password))
+                cursor.close()
+                connection.close()
+                flash("Admin berhasil dibuat!")
+                return redirect(url_for('login'))
+            except Error as e:
+                flash(f'Database error: {e}')
+        else:
+            flash('Koneksi database gagal!')
+    
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head><title>Create Admin</title></head>
+    <body>
+        <h2>Create New Admin</h2>
+        <form method="post">
+            <p><input type="email" name="email" placeholder="Email" required></p>
+            <p><input type="password" name="password" placeholder="Password" required></p>
+            <p><button type="submit">Create Admin</button></p>
+        </form>
+        <a href="/login">Back to Login</a>
+    </body>
+    </html>
+    '''
+
+# Route untuk debug - lihat semua admin
+@app.route('/debug-admin')
+def debug_admin():
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT id, email, password FROM admin")
+            admins = cursor.fetchall()
+            cursor.close()
+            connection.close()
+            
+            result = "<h2>Debug Admin Data</h2>"
+            for admin in admins:
+                result += f"<p>ID: {admin[0]}, Email: {admin[1]}, Password: {admin[2]}</p>"
+            result += "<br><a href='/hash-admin-password'>Hash Current Password</a>"
+            result += "<br><a href='/login'>Login</a>"
+            return result
+        except Error as e:
+            return f'Database error: {e}'
+    else:
+        return 'Koneksi database gagal!'
 
 # Route Logout
 @app.route('/logout')
